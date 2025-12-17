@@ -141,6 +141,92 @@ async def style_transfer(
         raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
 
 
+@router.post("/text-to-image", response_model=StyleTransferResponse)
+async def text_to_image(
+    prompt: str = Form(..., description="图片描述文字"),
+    aspect_ratio: str = Form(default="1:1", description="宽高比"),
+    resolution: str = Form(default="2K", description="分辨率"),
+    output_format: str = Form(default="JPEG", description="输出格式")
+):
+    """
+    文生图：根据文字描述生成图片
+
+    - **prompt**: 图片描述文字（必填）
+    - **aspect_ratio**: 输出图片宽高比 (1:1, 16:9, 9:16, 4:3, 3:4)
+    - **resolution**: 输出分辨率 (1K, 2K, 4K)
+    - **output_format**: 输出格式 (JPEG, PNG)
+    """
+    start_time = time.time()
+
+    try:
+        # 验证参数
+        if not prompt or not prompt.strip():
+            raise HTTPException(status_code=400, detail="提示词不能为空")
+
+        if aspect_ratio not in settings.ASPECT_RATIOS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"不支持的宽高比: {aspect_ratio}。可选: {settings.ASPECT_RATIOS}"
+            )
+
+        if resolution not in settings.RESOLUTIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"不支持的分辨率: {resolution}。可选: {settings.RESOLUTIONS}"
+            )
+
+        if output_format.upper() not in settings.OUTPUT_FORMATS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"不支持的输出格式: {output_format}。可选: {settings.OUTPUT_FORMATS}"
+            )
+
+        logger.info(f"开始文生图: prompt={prompt[:50]}...")
+
+        # 调用 Gemini API 进行文生图
+        result = gemini_service.text_to_image(
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+            output_format=output_format.upper()
+        )
+
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error)
+
+        # 保存结果图片
+        filename, file_path = image_service.save_result_image(
+            result.image_data,
+            output_format=output_format.upper(),
+            prefix="text_to_image"
+        )
+
+        # 获取生成图片的信息
+        image_info = image_service.get_image_info(result.image_data)
+
+        processing_time = time.time() - start_time
+
+        return StyleTransferResponse(
+            success=True,
+            image_url=f"/api/outputs/{filename}",
+            description=result.description,
+            metadata=ImageMetadata(
+                aspect_ratio=aspect_ratio,
+                resolution=resolution,
+                output_format=output_format.upper(),
+                processing_time=round(processing_time, 2),
+                width=image_info.get("width"),
+                height=image_info.get("height")
+            )
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"文生图失败: {e}")
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
 @router.get("/outputs/{filename}")
 async def get_output_image(filename: str):
     """获取生成的图片"""

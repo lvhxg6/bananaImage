@@ -132,7 +132,8 @@ class ImageService:
     @staticmethod
     def save_result_image(
         image_data: bytes,
-        output_format: str = "JPEG"
+        output_format: str = "JPEG",
+        prefix: str = "style_transfer"
     ) -> Tuple[str, Path]:
         """
         保存生成的图片
@@ -140,6 +141,7 @@ class ImageService:
         Args:
             image_data: 图片字节数据
             output_format: 输出格式
+            prefix: 文件名前缀
 
         Returns:
             (文件名, 文件路径)
@@ -151,7 +153,7 @@ class ImageService:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = uuid.uuid4().hex[:8]
         extension = "jpg" if output_format.upper() == "JPEG" else output_format.lower()
-        filename = f"style_transfer_{timestamp}_{unique_id}.{extension}"
+        filename = f"{prefix}_{timestamp}_{unique_id}.{extension}"
 
         # 保存文件
         file_path = settings.OUTPUT_DIR / filename

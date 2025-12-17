@@ -242,6 +242,76 @@ class GeminiService:
                     error=f"API 调用失败: {error_msg}"
                 )
 
+    def text_to_image(
+        self,
+        prompt: str,
+        aspect_ratio: str = "1:1",
+        resolution: str = "2K",
+        output_format: str = "JPEG"
+    ) -> StyleTransferResult:
+        """
+        文生图：根据文字描述生成图片
+
+        Args:
+            prompt: 图片描述文字
+            aspect_ratio: 输出图片的宽高比
+            resolution: 输出图片的分辨率
+            output_format: 输出图片的格式
+
+        Returns:
+            StyleTransferResult: 包含生成图片数据和描述的结果对象
+        """
+        try:
+            self._ensure_initialized()
+
+            if not prompt or not prompt.strip():
+                return StyleTransferResult(
+                    success=False,
+                    error="提示词不能为空"
+                )
+
+            logger.info(
+                f"开始文生图: prompt={prompt[:50]}..., "
+                f"aspect_ratio={aspect_ratio}, resolution={resolution}"
+            )
+
+            # 调用 API - 文生图只需要文字提示
+            response = self.client.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=[prompt]
+            )
+
+            # 提取结果
+            result = self._extract_result(response)
+
+            if result.success:
+                logger.info("文生图成功")
+            else:
+                logger.warning(f"文生图失败: {result.error}")
+
+            return result
+
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"文生图异常: {error_msg}")
+
+            # 处理特定错误
+            if "RATE_LIMIT" in error_msg.upper() or "429" in error_msg:
+                return StyleTransferResult(
+                    success=False,
+                    error="API 配额已用尽，请稍后再试"
+                )
+            elif "API_KEY" in error_msg.upper() or "401" in error_msg:
+                return StyleTransferResult(
+                    success=False,
+                    error="API Key 无效或未配置"
+                )
+            else:
+                return StyleTransferResult(
+                    success=False,
+                    error=f"API 调用失败: {error_msg}"
+                )
+
     def check_api_key(self) -> bool:
         """检查 API Key 是否有效"""
         try:

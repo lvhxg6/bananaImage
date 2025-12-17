@@ -37,6 +37,25 @@ export const styleTransfer = async (contentImage, styleImage, params = {}) => {
 };
 
 /**
+ * 文生图：根据文字描述生成图片
+ */
+export const textToImage = async (prompt, params = {}) => {
+  const formData = new FormData();
+  formData.append('prompt', prompt);
+  formData.append('aspect_ratio', params.aspectRatio || '1:1');
+  formData.append('resolution', params.resolution || '2K');
+  formData.append('output_format', params.outputFormat || 'JPEG');
+
+  const response = await api.post('/api/text-to-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data;
+};
+
+/**
  * 获取配置选项
  */
 export const getConfig = async () => {

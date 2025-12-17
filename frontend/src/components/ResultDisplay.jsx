@@ -1,66 +1,86 @@
 /**
  * 结果展示组件
+ * 支持文生图（单图展示）和图生图（三图对比）两种模式
  */
 
 import React from 'react';
 import { getImageUrl } from '../services/api';
 
-const ResultDisplay = ({ result, contentImage, styleImage, onReset }) => {
+const ResultDisplay = ({ result, contentImage, styleImage, onReset, mode = 'style-transfer' }) => {
   if (!result) return null;
+
+  const isTextToImage = mode === 'text-to-image';
 
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = getImageUrl(result.image_url);
-    link.download = `style_transfer_${Date.now()}.jpg`;
+    const prefix = isTextToImage ? 'text_to_image' : 'style_transfer';
+    link.download = `${prefix}_${Date.now()}.jpg`;
     link.click();
   };
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">生成结果</h3>
+      <h3 className="text-lg font-medium text-gray-900 mb-4">
+        {isTextToImage ? '生成结果' : '风格迁移结果'}
+      </h3>
 
-      {/* 三图对比 */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {/* 内容图 */}
-        <div className="text-center">
-          <p className="text-sm text-gray-500 mb-2">内容图</p>
-          <div className="bg-gray-100 rounded-lg p-2 aspect-square flex items-center justify-center">
-            {contentImage && (
-              <img
-                src={contentImage.preview}
-                alt="内容图"
-                className="max-h-full max-w-full object-contain rounded"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* 风格图 */}
-        <div className="text-center">
-          <p className="text-sm text-gray-500 mb-2">风格图</p>
-          <div className="bg-gray-100 rounded-lg p-2 aspect-square flex items-center justify-center">
-            {styleImage && (
-              <img
-                src={styleImage.preview}
-                alt="风格图"
-                className="max-h-full max-w-full object-contain rounded"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* 结果图 */}
-        <div className="text-center">
-          <p className="text-sm text-gray-500 mb-2">生成结果</p>
-          <div className="bg-gray-100 rounded-lg p-2 aspect-square flex items-center justify-center">
+      {/* 图片展示 */}
+      {isTextToImage ? (
+        // 文生图：单图展示
+        <div className="mb-6">
+          <div className="bg-gray-100 rounded-lg p-4 flex items-center justify-center">
             <img
               src={getImageUrl(result.image_url)}
               alt="生成结果"
-              className="max-h-full max-w-full object-contain rounded"
+              className="max-w-full max-h-[500px] object-contain rounded-lg shadow-sm"
             />
           </div>
         </div>
-      </div>
+      ) : (
+        // 图生图：三图对比
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {/* 内容图 */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-2">内容图</p>
+            <div className="bg-gray-100 rounded-lg p-2 aspect-square flex items-center justify-center">
+              {contentImage && (
+                <img
+                  src={contentImage.preview}
+                  alt="内容图"
+                  className="max-h-full max-w-full object-contain rounded"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* 风格图 */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-2">风格图</p>
+            <div className="bg-gray-100 rounded-lg p-2 aspect-square flex items-center justify-center">
+              {styleImage && (
+                <img
+                  src={styleImage.preview}
+                  alt="风格图"
+                  className="max-h-full max-w-full object-contain rounded"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* 结果图 */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500 mb-2">生成结果</p>
+            <div className="bg-gray-100 rounded-lg p-2 aspect-square flex items-center justify-center">
+              <img
+                src={getImageUrl(result.image_url)}
+                alt="生成结果"
+                className="max-h-full max-w-full object-contain rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 描述信息 */}
       {result.description && (
